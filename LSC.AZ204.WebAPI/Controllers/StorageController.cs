@@ -3,11 +3,9 @@ using LSC.AZ204.WebAPI.Common;
 using LSC.AZ204.WebAPI.Core;
 using LSC.AZ204.WebAPI.Data;
 using LSC.AZ204.WebAPI.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
-using System.Configuration;
 
 namespace LSC.AZ204.WebAPI.Controllers
 {
@@ -91,10 +89,10 @@ namespace LSC.AZ204.WebAPI.Controllers
             return true;
         }
 
-      
+
         private async Task<List<BlobDownload>> GetBlobs(string containerName)
         {
-            
+
             // Retrieve the storage account and container references
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration.GetConnectionString("AzureStorage"));
             CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
@@ -132,6 +130,8 @@ namespace LSC.AZ204.WebAPI.Controllers
             return blobUrlsWithSas;
 
         }
+
+
 
     }
 }
