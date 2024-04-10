@@ -1,11 +1,12 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Sas;
 using LSC.AZ204.WebAPI.Common;
 using LSC.AZ204.WebAPI.Core;
 using LSC.AZ204.WebAPI.Data;
 using LSC.AZ204.WebAPI.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace LSC.AZ204.WebAPI.Controllers
 {
@@ -36,17 +37,17 @@ namespace LSC.AZ204.WebAPI.Controllers
 
 
         [HttpGet("DownloadBlobs", Name = ControllerRoute.DownloadBlobs)]
-        [ProducesResponseType(typeof(List<BlobDownload>),StatusCodes.Status200OK)]        
-        public async Task<IActionResult> DownloadBlobs(string containerName= "demo-protected")
+        [ProducesResponseType(typeof(List<BlobDownload>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> DownloadBlobs(string containerName = "demo-protected")
         {
-            
+
             var blobUrlsWithSas = await GetBlobs(string.IsNullOrEmpty(containerName) ? "samples-workitems" : containerName);
             return Ok(blobUrlsWithSas);
         }
 
         private async Task<bool> UploadBlobToContainer(IFormFile file)
         {
-            var containerName = "demo-protected"; //"demo-protected" or "demo-public"
+            var containerName = "demo-public";// "demo-protected"; //"demo-protected" or 
             var isUploadSuccess = false;
             var uploadEntityToAdd = new CustomerContactUploads()
             {
@@ -90,46 +91,84 @@ namespace LSC.AZ204.WebAPI.Controllers
         }
 
 
+        //private async Task<List<BlobDownload>> GetBlobs(string containerName)
+        //{
+
+        //    // Retrieve the storage account and container references
+        //    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration.GetConnectionString("AzureStorage"));
+        //    CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+        //    CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+
+        //    // Retrieve a list of all blobs in the container
+        //    List<IListBlobItem> blobItems = new List<IListBlobItem>();
+        //    BlobContinuationToken continuationToken = null;
+        //    do
+        //    {
+        //        var response = await container.ListBlobsSegmentedAsync(null, continuationToken);
+        //        continuationToken = response.ContinuationToken;
+        //        blobItems.AddRange(response.Results);
+        //    }
+        //    while (continuationToken != null);
+
+        //    // Generate a SAS token for each blob and construct the URLs with the SAS tokens
+        //    List<BlobDownload> blobUrlsWithSas = new List<BlobDownload>();
+        //    foreach (IListBlobItem blobItem in blobItems)
+        //    {
+        //        if (blobItem.GetType() == typeof(CloudBlockBlob))
+        //        {
+        //            CloudBlockBlob blob = (CloudBlockBlob)blobItem;
+        //            string sasToken = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
+        //            {
+        //                Permissions = SharedAccessBlobPermissions.Read,
+        //                SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1) // set the expiry time for the SAS token
+        //            });
+        //            string blobUrlWithSas = string.Format("{0}{1}", blob.Uri, sasToken);
+        //            blobUrlsWithSas.Add(new BlobDownload() { Name = blob.Uri.ToString(), DownloadLink = blobUrlWithSas });
+        //        }
+        //    }
+
+        //    // Return the list of URLs with the SAS tokens to the client-side code
+        //    return blobUrlsWithSas;
+
+        //}
+
         private async Task<List<BlobDownload>> GetBlobs(string containerName)
         {
-
             // Retrieve the storage account and container references
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Configuration.GetConnectionString("AzureStorage"));
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+            string connectionString = Configuration.GetConnectionString("AzureStorage");
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
 
-            // Retrieve a list of all blobs in the container
-            List<IListBlobItem> blobItems = new List<IListBlobItem>();
-            BlobContinuationToken continuationToken = null;
-            do
+            try
             {
-                var response = await container.ListBlobsSegmentedAsync(null, continuationToken);
-                continuationToken = response.ContinuationToken;
-                blobItems.AddRange(response.Results);
-            }
-            while (continuationToken != null);
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
 
-            // Generate a SAS token for each blob and construct the URLs with the SAS tokens
-            List<BlobDownload> blobUrlsWithSas = new List<BlobDownload>();
-            foreach (IListBlobItem blobItem in blobItems)
-            {
-                if (blobItem.GetType() == typeof(CloudBlockBlob))
+                // Retrieve a list of all blobs in the container
+                List<BlobDownload> blobUrlsWithSas = new List<BlobDownload>();
+
+                await foreach (BlobItem blobItem in containerClient.GetBlobsAsync())
                 {
-                    CloudBlockBlob blob = (CloudBlockBlob)blobItem;
-                    string sasToken = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy
+                    BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
+                    BlobProperties properties = await blobClient.GetPropertiesAsync();
+
+                    if (properties.BlobType == BlobType.Block)
                     {
-                        Permissions = SharedAccessBlobPermissions.Read,
-                        SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1) // set the expiry time for the SAS token
-                    });
-                    string blobUrlWithSas = string.Format("{0}{1}", blob.Uri, sasToken);
-                    blobUrlsWithSas.Add(new BlobDownload() { Name = blob.Uri.ToString(), DownloadLink = blobUrlWithSas });
+                        string sasToken = blobClient.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddHours(1)).Query;
+                        string blobUrlWithSas = $"{blobClient.Uri}?{sasToken}";
+                        blobUrlsWithSas.Add(new BlobDownload() { Name = blobClient.Uri.ToString(), DownloadLink = blobUrlWithSas });
+                    }
                 }
+
+                // Return the list of URLs with the SAS tokens to the client-side code
+                return blobUrlsWithSas;
             }
-
-            // Return the list of URLs with the SAS tokens to the client-side code
-            return blobUrlsWithSas;
-
+            catch (RequestFailedException ex) when (ex.Status == 404)
+            {
+                // Handle case when container doesn't exist
+                Console.WriteLine($"Container '{containerName}' does not exist.");
+                return new List<BlobDownload>();
+            }
         }
+
 
 
 

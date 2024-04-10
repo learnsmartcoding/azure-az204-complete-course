@@ -46,7 +46,7 @@ namespace Planner
             }));
 
             // Register the KeyVaultSecretRefreshService as a hosted background service
-            builder.Services.AddHostedService<KeyVaultSecretRefreshService>();
+            //builder.Services.AddHostedService<KeyVaultSecretRefreshService>();
 
             var app = builder.Build();
 
@@ -55,7 +55,7 @@ namespace Planner
 
             // Call the RefreshSecrets method during application startup
             var keyVaultSecretService = app.Services.GetRequiredService<IKeyVaultSecretService>();
-            keyVaultSecretService.RefreshSecrets();
+            //keyVaultSecretService.RefreshSecrets();
 
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment())
