@@ -32,7 +32,7 @@ namespace AZ204_Functions_Demo
             try
             {
                 // Call Activity Function 1
-                string input1 = null; // Replace with your input
+                string input1 ="Learn Smart Coding"; // Replace with your input
                 string result1 = await context.CallActivityAsync<string>("GetInput", input1);
 
                 // Call Activity Function 2 with the result of Activity Function 1

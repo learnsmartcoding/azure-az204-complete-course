@@ -3,6 +3,6 @@
   "Values": {
     "AzureWebJobsStorage": "place your connection string here",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "ContainerName": "demo-protected/{name}"
+    "ContainerName": "demo-public/{name}"
   }
 }
