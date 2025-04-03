@@ -112,6 +112,12 @@ namespace AZ204_Functions_Demo
             return new OkObjectResult(requestBody);
         }
 
+        [FunctionName("MyTimerFunction")]
+        public static void Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, ILogger log)
+        {
+            log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
+        }
+
         private class Category
         {
             public int Id { get; set; }

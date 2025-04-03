@@ -100,7 +100,8 @@ namespace LSC.AZ204.WebAPI.Services
                 var clientSecret = _configuration["AzureAd:ClientSecret"];
                 var tenantId = _configuration["AzureAd:TenantId"];
 
-                var secretClient = new SecretClient(new Uri(keyVaultEndpoint), new ClientSecretCredential(tenantId, clientId, clientSecret));
+                var secretClient = new SecretClient(new Uri(keyVaultEndpoint), 
+                    new ClientSecretCredential(tenantId, clientId, clientSecret));
 
                 if (!string.IsNullOrEmpty(keyVaultEndpoint))
                 {

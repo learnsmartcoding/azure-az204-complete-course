@@ -1,7 +1,7 @@
 {
     "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "place your connection string here",
+    "AzureWebJobsStorage": "",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
     "ContainerName": "demo-public/{name}"
   }
